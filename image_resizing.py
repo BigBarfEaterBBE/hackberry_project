@@ -57,3 +57,4 @@ vertical = np.concatenate((res_inter_nearest, res_inter_linear, res_inter_area),
 cv2.imshow('Inter Nearest :: Inter Linear :: Inter Area', vertical)
 cv2.waitKey()
 cv2.destroyAllWindows()
+#INTER_AREA looks the smoothest IMO
