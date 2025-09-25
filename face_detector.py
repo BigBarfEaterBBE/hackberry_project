@@ -1,0 +1,4 @@
+import cv2
+cap = cv2.VideoCapture(0)
+#USES HAAR CASCADE CLASSIFIER TO DETECT FACES
+
