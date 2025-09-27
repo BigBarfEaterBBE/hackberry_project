@@ -45,7 +45,7 @@ while True:
         cv2.rectangle(img, (x,y), (x+w,y+h), (0,255,0), 2)
         face_roi = gray[y:y+h,x:x+w]
         id, confidence = recognizer.predict(face_roi)
-        if (confidence < 30):
+        if (confidence < 70):
             id = names[id]
         else:
             id = names[0]

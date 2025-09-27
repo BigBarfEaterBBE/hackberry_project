@@ -6,7 +6,7 @@ import os
 
 path = "FacialRecognitionProject/dataset"
 
-recognizer = cv2.face.LBPHFaceRecognizer.create() 
+recognizer = cv2.face.LBPHFaceRecognizer_create(radius = 2, neighbors = 16, grid_x = 8, grid_y = 8) 
 
 def getImagesAndLabels(path):
     imagePaths = [os.path.join(path,f) for f in os.listdir(path)]
