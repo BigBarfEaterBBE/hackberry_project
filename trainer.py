@@ -5,8 +5,8 @@ import os
 # DELETE/COMMENT OUT: PROTO_PATH, MODEL_PATH, detector, CONFIDENCE_THRESHOLD
 
 path = "FacialRecognitionProject/dataset"
-
-recognizer = cv2.face.LBPHFaceRecognizer_create(radius = 2, neighbors = 16, grid_x = 8, grid_y = 8) 
+BATCH_SIZE = 75
+recognizer = cv2.face.LBPHFaceRecognizer_create(neighbors = 10,grid_x = 10, grid_y = 10) 
 
 def getImagesAndLabels(path):
     imagePaths = [os.path.join(path,f) for f in os.listdir(path)]
@@ -16,8 +16,9 @@ def getImagesAndLabels(path):
     #Simplified Logic: Loop through pre-cropped images
     for imagePath in imagePaths:
         # Load the image directly as grayscale
-        PIL_img = Image.open(imagePath).convert("L") 
+        PIL_img = Image.open(imagePath).convert("L")
         img_numpy = np.array(PIL_img, "uint8")
+
         
         # Check if the image array is empty
         if img_numpy.size == 0 or img_numpy.shape[0] < 1 or img_numpy.shape[1] < 1:
@@ -44,6 +45,29 @@ faces,ids = getImagesAndLabels(path)
 if len(faces) == 0:
     print("\n [FATAL ERROR] No valid face samples found in the dataset folder. Check path and file contents.")
 else:
-    recognizer.train(faces, np.array(ids)) 
+    total_samples = len(faces)
+    print(f"\n [INFO] Total samples loaded: {total_samples}")
+    print(f" [INFO] Training using batches of size: {BATCH_SIZE}")
+    is_first_batch = True
+    for i in range(0,total_samples, BATCH_SIZE):
+        start_index = i
+        end_index = min(i+ BATCH_SIZE, total_samples)
+        #extract current batch data
+        batch_faces = faces[start_index:end_index]
+        batch_ids = np.array(ids[start_index:end_index])
+        if len(batch_faces) == 0:
+            continue
+        print(f" [INFO] Processing batch from index {start_index} to {end_index-1}...")
+        if is_first_batch:
+            #1 use .train() for first batch to init model
+            recognizer.train(batch_faces,batch_ids)
+            is_first_batch = False
+            print(" [INFO] Initial training completed.")
+        else:
+            #2 use .update() for subsequent to incrementally refine model
+            recognizer.update(batch_faces,batch_ids)
+            print(" [INFO] Model updated successfully.")
+
     recognizer.write("trainer.yml")
+    print("\n [INFO] Training complete. Model saved to trainer.yml")
     print("\n [INFO] {0} faces trained. Exiting Program".format(len(np.unique(ids))))
