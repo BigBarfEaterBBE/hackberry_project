@@ -44,8 +44,13 @@ while True:
     for(x,y,w,h) in faces:
         cv2.rectangle(img, (x,y), (x+w,y+h), (0,255,0), 2)
         face_roi = gray[y:y+h,x:x+w]
-        id, confidence = recognizer.predict(face_roi)
-        if (confidence < 70):
+        try:
+            face_roi_resized = cv2.resize(face_roi, (60, 60))
+        except cv2.error:
+            # Skip if the ROI is somehow invalid (w=0 or h=0)
+            continue
+        id, confidence = recognizer.predict(face_roi_resized)
+        if (confidence < 100):
             id = names[id]
         else:
             id = names[0]

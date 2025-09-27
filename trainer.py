@@ -6,7 +6,7 @@ import os
 
 path = "FacialRecognitionProject/dataset"
 BATCH_SIZE = 75
-recognizer = cv2.face.LBPHFaceRecognizer_create(neighbors = 10,grid_x = 10, grid_y = 10) 
+recognizer = cv2.face.LBPHFaceRecognizer_create() 
 
 def getImagesAndLabels(path):
     imagePaths = [os.path.join(path,f) for f in os.listdir(path)]
@@ -17,6 +17,7 @@ def getImagesAndLabels(path):
     for imagePath in imagePaths:
         # Load the image directly as grayscale
         PIL_img = Image.open(imagePath).convert("L")
+        PIL_img = PIL_img.resize((60, 60), Image.Resampling.LANCZOS)
         img_numpy = np.array(PIL_img, "uint8")
 
         
