@@ -40,20 +40,35 @@ def process_frame():
     blob = cv2.dnn.blobFromImage(cv2.resize(img, (300,300)),1.0,(300,300),(104.0,177.0,123.0))
     face_detector.setInput(blob)
     detections = face_detector.forward()
-    faces = []
     #Bounding Box logic
-    for (x,y,w_face,h_face) in faces:
-        cv2.rectangle(img,(x,y),(x+w_face,y+h_face),(0,255,0),2)
-        face_roi = gray[y:y + h_face, x:x + w_face]
-        try:
-            face_roi_resized = cv2.resize(face_roi,(60,60)) #use trained size
-        except cv2.error:
-            continue
-        id_num, confidence = recognizer.predict(face_roi_resized)
-        threshold = 70
-        name = names[id_num] if confidence < threshold else names[0]
+    for i in range(0, detections.shape[2]):
+        confidence = detections[0,0,i,2]
+        if confidence > CONFIDENCE_THRESHOLD:
+            box = detections[0,0,i,3:7]*np.array([w,h,w,h])
+            (startX, startY,endX,endY) = box.astype("int")
+            startX = max(0,startX)
+            startY = max(0,startY)
+            endX = min(w, endX)
+            endY = min(h, endY)
 
-        cv2.putText(img, str(name), (x+5, y-5), font, 1, (255,255,255),2)
+            w_face = endX-startX
+            h_face = endY-startY
+
+            x = startX
+            y=startY
+
+            cv2.rectangle(img,(x,y),(endX,endY),(0,255,0),2)
+            face_roi = gray[y:y + h_face, x:x+w_face]
+            try:
+                face_roi_resized = cv2.resize(face_roi,(60,60))
+            except cv2.error:
+                continue
+            id_num, confidence_lbph = recognizer.predict(face_roi_resized)
+            threshold = 110
+            name = names[id_num] if confidence_lbph < threshold else names[0]
+            label = f"{name}: {round(confidence_lbph, 2)}"
+            cv2.putText(img, label, (x+5,y-5),font,0.7,(0,0,0),2)
+
     #3 encode processed image back to Base64
     _, buffer = cv2.imencode(".jpeg", img)
     processed_base64 = base64.b64encode(buffer).decode("utf-8")

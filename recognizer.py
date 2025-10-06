@@ -50,7 +50,7 @@ while True:
             # Skip if the ROI is somehow invalid (w=0 or h=0)
             continue
         id, confidence = recognizer.predict(face_roi_resized)
-        if (confidence < 100):
+        if (confidence < 110):
             id = names[id]
         else:
             id = names[0]
