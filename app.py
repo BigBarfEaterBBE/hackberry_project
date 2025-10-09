@@ -45,6 +45,9 @@ def process_frame():
         return jsonify({"processed_image": "", "error": f"Invalid image data: {e}"}), 400
     if img is None or img.size == 0: 
         return jsonify({"processed_image": "","error":"Failed to decode image"}), 400
+    if len(img.shape) != 3 or img.shape[2] != 3:
+        return jsonify({"processed_image": "", "error":f"Image has incorrect channels ({img.shape}). Expected 3."}), 400
+    
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     (h,w) = img.shape[:2]
     try:
@@ -55,9 +58,17 @@ def process_frame():
                                      swapRB = False,
                                      crop=False
         )
+        if blob is None or blob.size == 0:
+            return jsonify({"processed_image": "", "error": "Blob creation resulted in empty blob"}), 500
     except Exception as e:
         return jsonify({"processed_image": "", "error": f"Blob creation failed: {e}"}), 500
     if face_detector:
+        try:
+            face_detector.setInput(blob)
+            detections = face_detector.forward()
+        except cv2.error as e:
+            print(f"DNN forward pass error: {e}")
+            return jsonify({"processed_image": "", "error": f"Processing error on forward pass. Input blob issue?"}), 500
         face_detector.setInput(blob)
         detections = face_detector.forward()
     else:
