@@ -4,6 +4,7 @@ import os
 from flask import Flask, render_template, request, jsonify
 import base64
 import re
+import cv2.face
 
 app = Flask(__name__)
 #--Global Model Setup
@@ -37,9 +38,30 @@ def process_frame():
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     (h,w) = img.shape[:2]
     #DNN detection + LBPH recog
-    blob = cv2.dnn.blobFromImage(cv2.resize(img, (300,300)),1.0,(300,300),(104.0,177.0,123.0))
-    face_detector.setInput(blob)
-    detections = face_detector.forward()
+    try:
+        nparr = np.frombuffer(base64.b64decode(img_data), np.uint8)
+        img = cv2.imdecode(nparr,cv2.IMREAD_COLOR)
+    except Exception as e:
+        return jsonify({"processed_image": "", "error": f"Invalid image data: {e}"}), 400
+    if img is None or img.size == 0: 
+        return jsonify({"processed_image": "","error":"Failed to decode image"}), 400
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    (h,w) = img.shape[:2]
+    try:
+        blob = cv2.dnn.blobFromImage(img,
+                                     1.0,
+                                     (300,300),
+                                     (104.0,177.0,123.0),
+                                     swapRB = False,
+                                     crop=False
+        )
+    except Exception as e:
+        return jsonify({"processed_image": "", "error": f"Blob creation failed: {e}"}), 500
+    if face_detector:
+        face_detector.setInput(blob)
+        detections = face_detector.forward()
+    else:
+        detections = np.zeros((1,1,0,7))
     #Bounding Box logic
     for i in range(0, detections.shape[2]):
         confidence = detections[0,0,i,2]
@@ -57,7 +79,7 @@ def process_frame():
             x = startX
             y=startY
 
-            cv2.rectangle(img,(x,y),(endX,endY),(0,255,0),2)
+            cv2.rectangle(img,(int(x),int(y)),(int(endX),int(endY)),(0,255,0),2)
             face_roi = gray[y:y + h_face, x:x+w_face]
             try:
                 face_roi_resized = cv2.resize(face_roi,(60,60))
@@ -67,7 +89,7 @@ def process_frame():
             threshold = 110
             name = names[id_num] if confidence_lbph < threshold else names[0]
             label = f"{name}: {round(confidence_lbph, 2)}"
-            cv2.putText(img, label, (x+5,y-5),font,0.7,(0,0,0),2)
+            cv2.putText(img, label, (x+5,y-5),font,0.7,(0,255,0),2)
 
     #3 encode processed image back to Base64
     _, buffer = cv2.imencode(".jpeg", img)
