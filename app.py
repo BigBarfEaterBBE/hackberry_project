@@ -34,15 +34,7 @@ def process_frame():
         img = cv2.imdecode(nparr,cv2.IMREAD_COLOR)
     except:
         return jsonify({"processed_image":"","error":"Invalid image data"}),400
-    #2 run recognition logic
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    (h,w) = img.shape[:2]
     #DNN detection + LBPH recog
-    try:
-        nparr = np.frombuffer(base64.b64decode(img_data), np.uint8)
-        img = cv2.imdecode(nparr,cv2.IMREAD_COLOR)
-    except Exception as e:
-        return jsonify({"processed_image": "", "error": f"Invalid image data: {e}"}), 400
     if img is None or img.size == 0: 
         return jsonify({"processed_image": "","error":"Failed to decode image"}), 400
     if len(img.shape) != 3 or img.shape[2] != 3:
@@ -92,6 +84,8 @@ def process_frame():
 
             cv2.rectangle(img,(int(x),int(y)),(int(endX),int(endY)),(0,255,0),2)
             face_roi = gray[y:y + h_face, x:x+w_face]
+            if face_roi is None or face_roi.size == 0:
+                continue
             try:
                 face_roi_resized = cv2.resize(face_roi,(60,60))
             except cv2.error:

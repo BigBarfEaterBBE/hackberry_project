@@ -13,17 +13,23 @@
     <div id = "status">Status: Stopped</div>
 
     <div id = "video-container">
-        <video id = "videoElement" autoplay playsinline style = "display: none"></video>
-        <img id = "processedImage" style = "width: 100%; max-width: 640px;"/>
+        <video id = "video" autoplay playsinline style = "display: none"></video>
+        <canvas id="frameCanvas" style = "display:none"></canvas>
+        <img id = "processedFrame" style = "width: 100%; max-width: 640px;"/>
     </div>
     <script>
         const startButton = document.getElementById("startButton");
         const stopButton = document.getElementById("stopButton");
         const statusDiv = document.getElementById("status");
-        const videoElement = document.getElementById("videoElement");
-        const processedImage = document.getElementById("processedImage");
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("frameCanvas")
+        const processedFrame = document.getElementById("processedFrame");
+        const context = canvas.getContext('2d')
         const processRoute = "{{ url_for('process_frame') }}";
-        let stream = null;
+        const TARGET_WIDTH = 320;
+        const JPEG_QUALITY = 0.7;
+        let stream;
+        let isRunning = false;
         let processingInterval =null;
         const FPS = 10;
         let frameDelay = 1000/FPS;
@@ -35,20 +41,18 @@
                     video: { facingMode: "user"}, //use "environment" for back facing camera
                     audio: false
                 });
-                videoElement.srcObject = stream;
+                video.srcObject = stream;
                 // wait for video metadata to load
-                await new Promise(resolve => videoElement.onloadedmetadata = resolve);
-                //set display params
-                processedImage.width = videoElement.videoWidth;
-                processedImage.height = videoElement.videoHeight;
-
-                //2 start frame processing loop
-                processingInterval = setInterval(sendFrameToServer, frameDelay);
-                //3 Update GUI
-                startButton.disabled = true;
-                stopButton.disabled = false;
-                statusDiv.textContent = "Status: Running...";
-
+                video.onloadedmetadata = () => {
+                    canvas.width = TARGET_WIDTH;
+                    canvas.height = (video.videoHeight / video.videoWidth) * TARGET_WIDTH;
+                    video.play()
+                    isRunning = true;
+                    requestAnimationFrame(sendFrameToServer)
+                    startButton.disabled = true;
+                    stopButton.disabled = false;
+                    statusDiv.textContent = "Status: Running...";
+                }
             } catch (err) {
                 //ERROR HANDLING
                 console.error("Error accessing media devices: ", err);
@@ -63,44 +67,42 @@
             }
         }
         function stopRecognition() {
+            isRunning = false;
             clearInterval(processingInterval);
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
-            videoElement.srcObject = null;
-            processedImage.src = "";
+            video.srcObject = null;
+            processedFrame.src = "";
             startButton.disabled = false;
             stopButton.disabled = true;
             statusDiv.textContent = "Status: Stopped";
         }
 
         function sendFrameToServer() {
-            const canvas = document.createElement("canvas");
-            canvas.width = videoElement.videoWidth;
-            canvas.height = videoElement.videoHeight;
-            const ctx = canvas.getContext("2d");
-            //1 draw current vid frame onto canvas
-            ctx.drawImage(videoElement, 0,0, canvas.width, canvas.height);
-            //2 get image data as a JPEG Base64 string
-            const imageDataURL = canvas.toDataURL("image/jpeg",0.8);
-            //3 use fetch API to send data to server
-            fetch(processRoute, {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({image: imageDataURL})
+            if (!isRunning) return;
+            context.drawImage(video, 0,0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/jpeg', JPEG_QUALITY)
+            fetch('/process_frame', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: imageData})
             })
             .then(response => response.json())
             .then(data => {
-                if (data.processed_image) {
-                    //4 update image source w/ processed base64 string
-                    processedImage.src = "data:image/jpeg;base64," + data.processed_image;
+                if (data.error) {
+                    console.error("Server Error:", data.error);
+                } else {
+                    processedFrame.src = 'data:image/jpeg;base64,' + data.processed_image;
                 }
+                requestAnimationFrame(sendFrameToServer)
             })
             .catch(error => {
-                //ERROR LOGGING
-                statusDiv.textContent = "Status: Network or Server Error. Check terminal.";
-                stopRecognition();
-            })
+                console.error('Network or Fetch error:', error)
+                requestAnimationFrame(sendFrameToServer)
+            });
         }
         startButton.addEventListener("click", startRecognition);
         stopButton.addEventListener("click", stopRecognition);
