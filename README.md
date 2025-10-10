@@ -11,4 +11,4 @@ SETUP:
 3) To get the model itself, run trainer.py, it will take a few seconds to download the model file
 FOR WEB HOSTING VER. ONLY:
 4) When you run app.py it will print: * Server running on: http://10.0.0.103:5000/ * Use this URL on iPhone browser.
-5) If you are having trouble with the link it provides, use http://localhost:5000/ *ONLY WORKS IF YOU ARE OPENING IT ON THE SAME DEVICE AS YOU RAN THE PROGRAM ON*
+5) If you are having trouble with the link it provides, use http://localhost:5000/ *ONLY WORKS IF YOU ARE OPENING IT ON THE SAME DEVICE AS YOU RAN THE PROGRAM ON* 
