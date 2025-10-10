@@ -12,3 +12,6 @@ SETUP:
 FOR WEB HOSTING VER. ONLY:
 4) When you run app.py it will print: * Server running on: http://10.0.0.103:5000/ * Use this URL on iPhone browser.
 5) If you are having trouble with the link it provides, use http://localhost:5000/ *ONLY WORKS IF YOU ARE OPENING IT ON THE SAME DEVICE AS YOU RAN THE PROGRAM ON* 
+
+NOTE:
+I spent like 2 extra hours trying to implement SFace or Facenet models instead of LBPH and it lowk would not work so i made it into seperate branch but for some reason its like not there so idk what the jelly happened to it but thats why it looks like theres a big gap in commits
